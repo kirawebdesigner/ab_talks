@@ -47,7 +47,14 @@ async def root() -> dict[str, str]:
 
 @app.get("/health")
 async def health() -> dict[str, str | bool]:
-    return {"status": "healthy", "telegram_ready": telegram_ready}
+    return {
+        "status": "healthy",
+        "telegram_ready": telegram_ready,
+        "has_bot_token": CONFIG.bot_token != "missing-token",
+        "has_admin_ids": bool(CONFIG.admin_ids),
+        "has_public_base_url": bool(CONFIG.public_base_url),
+        "has_delivery_message": bool(CONFIG.delivery_message),
+    }
 
 
 @app.post("/telegram/webhook")

@@ -25,13 +25,6 @@ class Config:
     port: int
 
 
-def _required(name: str) -> str:
-    value = os.getenv(name, "").strip()
-    if not value:
-        raise RuntimeError(f"Missing required environment variable: {name}")
-    return value
-
-
 def _parse_admin_ids(raw: str) -> tuple[int, ...]:
     admin_ids: list[int] = []
     for item in raw.split(","):
@@ -42,16 +35,14 @@ def _parse_admin_ids(raw: str) -> tuple[int, ...]:
             admin_ids.append(int(item))
         except ValueError as exc:
             raise RuntimeError(f"ADMIN_IDS contains a non-numeric id: {item}") from exc
-    if not admin_ids:
-        raise RuntimeError("ADMIN_IDS must contain at least one Telegram user id")
     return tuple(admin_ids)
 
 
 def load_config() -> Config:
     load_dotenv()
     return Config(
-        bot_token=_required("BOT_TOKEN"),
-        admin_ids=_parse_admin_ids(_required("ADMIN_IDS")),
+        bot_token=os.getenv("BOT_TOKEN", "missing-token").strip(),
+        admin_ids=_parse_admin_ids(os.getenv("ADMIN_IDS", "")),
         product_name=os.getenv("PRODUCT_NAME", "Digital Product").strip(),
         product_description=os.getenv("PRODUCT_DESCRIPTION", "").strip(),
         product_price=os.getenv("PRODUCT_PRICE", "").strip(),
@@ -59,7 +50,7 @@ def load_config() -> Config:
         telebirr_number=os.getenv("TELEBIRR_NUMBER", "").strip(),
         bank_account_name=os.getenv("BANK_ACCOUNT_NAME", "").strip(),
         bank_account_number=os.getenv("BANK_ACCOUNT_NUMBER", "").strip(),
-        delivery_message=_required("DELIVERY_MESSAGE"),
+        delivery_message=os.getenv("DELIVERY_MESSAGE", "Payment confirmed.").strip(),
         database_path=os.getenv("DATABASE_PATH", "orders.db").strip(),
         public_base_url=os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/"),
         webhook_path=os.getenv("WEBHOOK_PATH", "/telegram/webhook").strip(),
