@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -11,27 +12,38 @@ from bot import CONFIG, build_application
 logger = logging.getLogger(__name__)
 telegram_app = build_application()
 telegram_ready = False
+telegram_startup_task: asyncio.Task[None] | None = None
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    del app
+async def start_telegram() -> None:
     global telegram_ready
     try:
-        await telegram_app.initialize()
+        await asyncio.wait_for(telegram_app.initialize(), timeout=15)
         await telegram_app.start()
         if CONFIG.public_base_url:
-            await telegram_app.bot.set_webhook(
-                url=f"{CONFIG.public_base_url}{CONFIG.webhook_path}",
-                secret_token=CONFIG.webhook_secret or None,
-                allowed_updates=Update.ALL_TYPES,
+            await asyncio.wait_for(
+                telegram_app.bot.set_webhook(
+                    url=f"{CONFIG.public_base_url}{CONFIG.webhook_path}",
+                    secret_token=CONFIG.webhook_secret or None,
+                    allowed_updates=Update.ALL_TYPES,
+                ),
+                timeout=15,
             )
         telegram_ready = True
         logger.info("Telegram bot started")
     except Exception:
         telegram_ready = False
         logger.exception("Telegram bot startup failed")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    del app
+    global telegram_startup_task
+    telegram_startup_task = asyncio.create_task(start_telegram())
     yield
+    if telegram_startup_task and not telegram_startup_task.done():
+        telegram_startup_task.cancel()
     if telegram_ready:
         await telegram_app.stop()
         await telegram_app.shutdown()
