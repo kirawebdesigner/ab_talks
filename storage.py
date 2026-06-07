@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import sqlite3
+import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -24,8 +27,18 @@ class Order:
 class OrderStore:
     def __init__(self, database_path: str) -> None:
         self.database_path = database_path
-        Path(database_path).parent.mkdir(parents=True, exist_ok=True)
+        self._ensure_database_path()
         self._init_schema()
+
+    def _ensure_database_path(self) -> None:
+        try:
+            Path(self.database_path).parent.mkdir(parents=True, exist_ok=True)
+            with sqlite3.connect(self.database_path):
+                return
+        except sqlite3.OperationalError:
+            logger.exception("Could not open database path %s; falling back to /tmp/orders.db", self.database_path)
+            self.database_path = "/tmp/orders.db"
+            Path(self.database_path).parent.mkdir(parents=True, exist_ok=True)
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.database_path)

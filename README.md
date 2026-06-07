@@ -58,7 +58,7 @@ DELIVERY_MESSAGE=Payment confirmed. Download link: https://example.com/download
 PUBLIC_BASE_URL=https://your-choreo-public-service-url
 WEBHOOK_PATH=/telegram/webhook
 WEBHOOK_SECRET=choose-a-random-secret
-DATABASE_PATH=/data/orders.db
+DATABASE_PATH=/tmp/orders.db
 ```
 
 After Choreo deploys, open the public service URL in the browser. `/health` should return `{"status":"healthy"}`. On startup, the bot sets its Telegram webhook to:
@@ -82,6 +82,6 @@ ADMIN_IDS=123456789,987654321
 ## Notes
 
 - The bot stores orders in SQLite using `orders.db` by default.
-- In Choreo, the Dockerfile defaults `DATABASE_PATH` to `/data/orders.db`. This is enough for a demo, but use Choreo storage or a managed database before handling real customers.
+- In Choreo, use `DATABASE_PATH=/tmp/orders.db` for the demo. This is temporary container storage, so use Choreo storage or a managed database before handling real customers.
 - Payment checking is manual. The bot does not connect to Telebirr or banks.
 - Only sell products the seller has permission to distribute.
