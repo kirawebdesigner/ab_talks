@@ -1,0 +1,25 @@
+openapi: 3.0.3
+info:
+  title: Telegram Sales Bot Webhook
+  version: 1.0.0
+paths:
+  /:
+    get:
+      summary: Service status
+      responses:
+        "200":
+          description: OK
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+  /telegram/webhook:
+    post:
+      summary: Telegram webhook receiver
+      responses:
+        "200":
+          description: Update accepted
+        "403":
+          description: Invalid webhook secret
