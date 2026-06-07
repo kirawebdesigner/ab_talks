@@ -7,17 +7,21 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Header, HTTPException, Request
 from telegram import Update
 
-from bot import CONFIG, build_application
+from config import load_config
 
 logger = logging.getLogger(__name__)
-telegram_app = build_application()
+CONFIG = load_config()
+telegram_app = None
 telegram_ready = False
 telegram_startup_task: asyncio.Task[None] | None = None
 
 
 async def start_telegram() -> None:
-    global telegram_ready
+    global telegram_app, telegram_ready
     try:
+        from bot import build_application
+
+        telegram_app = build_application()
         await asyncio.wait_for(telegram_app.initialize(), timeout=15)
         await telegram_app.start()
         if CONFIG.public_base_url:
@@ -44,7 +48,7 @@ async def lifespan(app: FastAPI):
     yield
     if telegram_startup_task and not telegram_startup_task.done():
         telegram_startup_task.cancel()
-    if telegram_ready:
+    if telegram_ready and telegram_app:
         await telegram_app.stop()
         await telegram_app.shutdown()
 
@@ -76,6 +80,9 @@ async def telegram_webhook(
 ) -> dict[str, bool]:
     if not telegram_ready:
         raise HTTPException(status_code=503, detail="Telegram bot is not ready")
+
+    if not telegram_app:
+        raise HTTPException(status_code=503, detail="Telegram app is not initialized")
 
     if CONFIG.webhook_secret and x_telegram_bot_api_secret_token != CONFIG.webhook_secret:
         raise HTTPException(status_code=403, detail="Invalid webhook secret")
