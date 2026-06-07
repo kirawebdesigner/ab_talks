@@ -13,12 +13,14 @@ logger = logging.getLogger(__name__)
 CONFIG = load_config()
 telegram_app = None
 telegram_ready = False
+telegram_error = ""
 telegram_startup_task: asyncio.Task[None] | None = None
 
 
 async def start_telegram() -> None:
-    global telegram_app, telegram_ready
+    global telegram_app, telegram_error, telegram_ready
     try:
+        telegram_error = ""
         from bot import build_application
 
         telegram_app = build_application()
@@ -37,7 +39,21 @@ async def start_telegram() -> None:
         logger.info("Telegram bot started")
     except Exception:
         telegram_ready = False
+        telegram_error = _safe_error()
         logger.exception("Telegram bot startup failed")
+
+
+def _safe_error() -> str:
+    try:
+        import traceback
+
+        message = traceback.format_exc(limit=2)
+    except Exception:
+        return "Could not format startup error"
+    token = CONFIG.bot_token
+    if token and token != "missing-token":
+        message = message.replace(token, "[BOT_TOKEN]")
+    return message[-1000:]
 
 
 @asynccontextmanager
@@ -70,6 +86,7 @@ async def health() -> dict[str, str | bool]:
         "has_admin_ids": bool(CONFIG.admin_ids),
         "has_public_base_url": bool(CONFIG.public_base_url),
         "has_delivery_message": bool(CONFIG.delivery_message),
+        "telegram_error": telegram_error,
     }
 
 
