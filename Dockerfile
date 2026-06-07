@@ -17,4 +17,4 @@ USER 10001
 
 EXPOSE 9090
 
-CMD ["sh", "-c", "uvicorn web_app:app --host 0.0.0.0 --port ${PORT:-9090}"]
+CMD ["uvicorn", "web_app:app", "--host", "0.0.0.0", "--port", "9090"]
